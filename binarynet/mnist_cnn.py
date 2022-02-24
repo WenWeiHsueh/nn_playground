@@ -12,7 +12,7 @@ from keras.datasets import mnist
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, BatchNormalization, MaxPooling2D
 from keras.layers import Flatten
-from keras.optimizers import SGD, Adam, RMSprop
+from tensorflow.keras.optimizers import SGD, Adam, RMSprop
 from keras.callbacks import LearningRateScheduler
 from keras.utils import np_utils
 
@@ -56,6 +56,8 @@ p2 = 0.5
 # the data, shuffled and split between train and test sets
 (X_train, y_train), (X_test, y_test) = mnist.load_data()
 
+# X_train = X_train.reshape(60000, 1, 28, 28)
+# X_test = X_test.reshape(10000, 1, 28, 28)
 X_train = X_train.reshape(60000, 1, 28, 28)
 X_test = X_test.reshape(10000, 1, 28, 28)
 X_train = X_train.astype('float32')
@@ -78,44 +80,55 @@ model.add(BinaryConv2D(128, kernel_size=kernel_size, input_shape=(channels, img_
                        padding='same', use_bias=use_bias, name='conv1'))
 model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='bn1'))
 model.add(Activation(binary_tanh, name='act1'))
-# conv2
-model.add(BinaryConv2D(128, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier, 
-                       data_format='channels_first',
-                       padding='same', use_bias=use_bias, name='conv2'))
-model.add(MaxPooling2D(pool_size=pool_size, name='pool2', data_format='channels_first'))
-model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='bn2'))
-model.add(Activation(binary_tanh, name='act2'))
-# conv3
-model.add(BinaryConv2D(256, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
-                       data_format='channels_first',
-                       padding='same', use_bias=use_bias, name='conv3'))
-model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='bn3'))
-model.add(Activation(binary_tanh, name='act3'))
-# conv4
-model.add(BinaryConv2D(256, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
-                       data_format='channels_first',
-                       padding='same', use_bias=use_bias, name='conv4'))
-model.add(MaxPooling2D(pool_size=pool_size, name='pool4', data_format='channels_first'))
-model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='bn4'))
-model.add(Activation(binary_tanh, name='act4'))
-model.add(Flatten())
-# dense1
-model.add(BinaryDense(1024, H=H, kernel_lr_multiplier=kernel_lr_multiplier, use_bias=use_bias, name='dense5'))
-model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, name='bn5'))
-model.add(Activation(binary_tanh, name='act5'))
-# dense2
-model.add(BinaryDense(classes, H=H, kernel_lr_multiplier=kernel_lr_multiplier, use_bias=use_bias, name='dense6'))
-model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, name='bn6'))
 
-opt = Adam(lr=lr_start) 
+# # conv2
+# model.add(BinaryConv2D(128, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier, 
+#                        data_format='channels_first',
+#                        padding='same', use_bias=use_bias, name='conv2'))
+# model.add(MaxPooling2D(pool_size=pool_size, name='pool2', data_format='channels_last'))
+# model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='bn2'))
+# model.add(Activation(binary_tanh, name='act2'))
+
+# # conv3
+# model.add(BinaryConv2D(256, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+#                        data_format='channels_first',
+#                        padding='same', use_bias=use_bias, name='conv3'))
+# model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='bn3'))
+# model.add(Activation(binary_tanh, name='act3'))
+
+# # conv4
+# model.add(BinaryConv2D(256, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+#                        data_format='channels_first',
+#                        padding='same', use_bias=use_bias, name='conv4'))
+# model.add(MaxPooling2D(pool_size=pool_size, name='pool4', data_format='channels_last'))
+# model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='bn4'))
+# model.add(Activation(binary_tanh, name='act4'))
+
+model.add(Flatten())
+
+# dense1
+model.add(Dense(128, activation='relu'))
+# model.add(BinaryDense(128, H=H, kernel_lr_multiplier=kernel_lr_multiplier, use_bias=use_bias, name='dense5'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, name='bn5'))
+# model.add(Activation(binary_tanh, name='act5'))
+
+# dense2
+model.add(Dense(10, activation='softmax'))
+# model.add(BinaryDense(classes, H=H, kernel_lr_multiplier=kernel_lr_multiplier, use_bias=use_bias, name='dense6'))
+# model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, name='bn6'))
+
+# opt = Adam(learning_rate=lr_start) 
+opt = Adam() 
 model.compile(loss='squared_hinge', optimizer=opt, metrics=['acc'])
 model.summary()
 
+# 把weight轉出來
+# 轉成num.py
+from keras import callbacks
 lr_scheduler = LearningRateScheduler(lambda e: lr_start * lr_decay ** e)
 history = model.fit(X_train, Y_train,
-                    batch_size=batch_size, epochs=epochs,
-                    verbose=1, validation_data=(X_test, Y_test),
-                    callbacks=[lr_scheduler])
+                    batch_size=50, epochs=1,
+                    verbose=1, validation_data=(X_test, Y_test))
 score = model.evaluate(X_test, Y_test, verbose=0)
 print('Test score:', score[0])
 print('Test accuracy:', score[1])
