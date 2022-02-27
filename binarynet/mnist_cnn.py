@@ -18,6 +18,8 @@ from keras.utils import np_utils
 
 from binary_ops import binary_tanh as binary_tanh_op
 from binary_layers import BinaryDense, BinaryConv2D
+from binary_ops import binarize
+
 
 
 def binary_tanh(x):
@@ -124,6 +126,7 @@ model.summary()
 
 # 把weight轉出來
 # 轉成num.py
+
 from keras import callbacks
 lr_scheduler = LearningRateScheduler(lambda e: lr_start * lr_decay ** e)
 history = model.fit(X_train, Y_train,
@@ -132,3 +135,19 @@ history = model.fit(X_train, Y_train,
 score = model.evaluate(X_test, Y_test, verbose=0)
 print('Test score:', score[0])
 print('Test accuracy:', score[1])
+
+
+# 把 non_binarize weight 與 binarize weight 分別印出
+print('=====================================NON_BINARIZE=======================================')
+print(model.layers[0].get_weights())
+binary_kernel = binarize(model.layers[0].kernel, H=model.layers[0].H) 
+print('=======================================BINARIZE=========================================')
+print('BINARIZE')
+print(binary_kernel)
+
+# 輸出成.txt檔
+array = binary_kernel.numpy()
+dk1_f = open('dk1.txt', 'a')
+for i in range(len(binary_kernel)):
+  dk1_f.write(str(array[i]) + '\n')
+dk1_f.close()
